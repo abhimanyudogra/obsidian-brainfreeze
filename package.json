@@ -1,0 +1,26 @@
+{
+  "name": "obsidian-brainfreeze",
+  "version": "0.1.0",
+  "description": "Build persistent memory palaces with LLM-maintained provenance-tracked wiki pages",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "node esbuild.config.mjs production",
+    "typecheck": "tsc -noEmit -skipLibCheck"
+  },
+  "keywords": ["obsidian", "knowledge-base", "llm", "wiki", "karpathy"],
+  "author": "Abhimanyu Dogra",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "builtin-modules": "^4.0.0",
+    "esbuild": "^0.25.0",
+    "obsidian": "latest",
+    "tslib": "^2.8.0",
+    "typescript": "^5.8.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.52.0",
+    "flexsearch": "^0.7.43"
+  }
+}

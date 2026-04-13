@@ -1,0 +1,230 @@
+/* ── Brainfreeze Plugin Styles ────────────────────────────────── */
+
+/* Drop zone */
+.brainfreeze-dropzone {
+  border: 2px dashed var(--background-modifier-border);
+  border-radius: 8px;
+  padding: 24px;
+  text-align: center;
+  margin: 12px 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.brainfreeze-dropzone:hover,
+.brainfreeze-dropzone-active {
+  border-color: var(--interactive-accent);
+  background: var(--background-modifier-hover);
+}
+
+.brainfreeze-dropzone p {
+  margin: 4px 0;
+}
+
+.brainfreeze-dropzone-sub {
+  font-size: 0.85em;
+  color: var(--text-muted);
+}
+
+/* Stats grid */
+.brainfreeze-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.brainfreeze-stat-card {
+  background: var(--background-secondary);
+  border-radius: 6px;
+  padding: 8px;
+  text-align: center;
+}
+
+.brainfreeze-stat-value {
+  font-size: 1.4em;
+  font-weight: 700;
+  color: var(--text-normal);
+}
+
+.brainfreeze-stat-label {
+  font-size: 0.75em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Buttons */
+.brainfreeze-btn {
+  padding: 6px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+  color: var(--text-normal);
+  cursor: pointer;
+  font-size: 0.9em;
+  margin: 4px;
+  transition: all 0.15s ease;
+}
+
+.brainfreeze-btn:hover {
+  background: var(--background-modifier-hover);
+}
+
+.brainfreeze-btn-primary {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-color: var(--interactive-accent);
+}
+
+.brainfreeze-btn-primary:hover {
+  opacity: 0.9;
+}
+
+.brainfreeze-btn-danger {
+  color: var(--text-error);
+  border-color: var(--text-error);
+}
+
+.brainfreeze-btn-sm {
+  padding: 2px 10px;
+  font-size: 0.8em;
+}
+
+.brainfreeze-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 12px 0;
+}
+
+/* Search */
+.brainfreeze-search {
+  margin: 12px 0;
+}
+
+.brainfreeze-search-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-size: 0.9em;
+}
+
+.brainfreeze-search-results {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.brainfreeze-search-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.brainfreeze-search-item:hover {
+  background: var(--background-modifier-hover);
+}
+
+.brainfreeze-search-title {
+  font-size: 0.9em;
+}
+
+.brainfreeze-search-category {
+  font-size: 0.75em;
+  color: var(--text-muted);
+  background: var(--background-secondary);
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+/* Review panel */
+.brainfreeze-review-header {
+  margin-bottom: 12px;
+}
+
+.brainfreeze-review-bulk {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.brainfreeze-review-card {
+  background: var(--background-secondary);
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 8px;
+}
+
+.brainfreeze-review-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.brainfreeze-review-path {
+  font-family: var(--font-monospace);
+  font-size: 0.85em;
+}
+
+.brainfreeze-review-preview {
+  font-size: 0.8em;
+  color: var(--text-muted);
+  background: var(--background-primary);
+  padding: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  max-height: 60px;
+  margin-top: 8px;
+}
+
+.brainfreeze-review-empty {
+  text-align: center;
+  padding: 24px;
+  color: var(--text-muted);
+}
+
+.brainfreeze-muted {
+  color: var(--text-muted);
+  font-size: 0.85em;
+}
+
+/* Badges */
+.brainfreeze-badge {
+  font-size: 0.7em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.brainfreeze-badge-create {
+  background: var(--color-green);
+  color: white;
+}
+
+.brainfreeze-badge-update {
+  background: var(--color-yellow);
+  color: black;
+}
+
+/* Privacy note in settings */
+.brainfreeze-privacy-note {
+  background: var(--background-secondary);
+  border-radius: 6px;
+  padding: 12px;
+  margin-top: 8px;
+}
+
+.brainfreeze-privacy-note p {
+  margin: 6px 0;
+  font-size: 0.85em;
+  color: var(--text-muted);
+}

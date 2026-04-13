@@ -1,0 +1,11 @@
+{
+  "id": "brainfreeze",
+  "name": "Brainfreeze",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "Build persistent memory palaces from your documents. Drop files, review LLM-generated wiki pages, and watch your knowledge graph grow — with provenance tracking on every claim.",
+  "author": "Abhimanyu Dogra",
+  "authorUrl": "https://github.com/abhimanyudogra",
+  "isDesktopOnly": true,
+  "fundingUrl": ""
+}
