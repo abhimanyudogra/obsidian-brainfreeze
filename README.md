@@ -107,10 +107,10 @@ npm run build
 ## Setup
 
 1. Open Obsidian Settings → Brainfreeze
-2. Select your **LLM provider** (Anthropic, OpenAI, or Ollama for fully local)
+2. Select your **LLM provider** (Anthropic currently — OpenAI and Ollama are on the roadmap)
 3. Enter your **API key** (stored locally in the vault, never sent to us — there is no "us")
-4. Pick a **vault type** (Personal Finance, Career, Health, or Custom)
-5. Copy the matching `CLAUDE.md` from [brainfreeze](https://github.com/abhimanyudogra/brainfreeze) into your vault root
+4. Pick a **vault type** (informational for now; vault-type-specific ingest routing is on the roadmap)
+5. Open the Brainfreeze sidebar and click **Initialize vault** — the plugin writes `CLAUDE.md`, all five page templates, the five category folders, `.manifest.json`, `index.md`, and `log.md` using the bundled schema. No copy-paste from the [brainfreeze](https://github.com/abhimanyudogra/brainfreeze) repo required.
 6. Drop files into the sidebar and start ingesting
 
 ## Privacy
