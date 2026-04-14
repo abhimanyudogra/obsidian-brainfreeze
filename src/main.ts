@@ -504,6 +504,34 @@ Respond as JSON with "conversation" and "pages" array.`;
       breakdown.push(`${ambiguousPages.length} page${ambiguousPages.length > 1 ? "s" : ""} with unresolved ambiguities`);
     }
 
+    // Inference-DAG drift signals
+    let totalDepth = 0;
+    let pagesWithInferred = 0;
+    let deepPages = 0;
+    let totalOrphans = 0;
+    for (const page of this.index.getAllPages()) {
+      if (page.provenance.inferred > 0) {
+        totalDepth += page.provenance.maxDepth;
+        pagesWithInferred++;
+        if (page.provenance.maxDepth > 2) deepPages++;
+      }
+      totalOrphans += page.provenance.orphanInferences;
+    }
+    const avgDepth = pagesWithInferred > 0 ? totalDepth / pagesWithInferred : 0;
+    if (avgDepth > 0) {
+      score -= Math.round(avgDepth * 4);
+    }
+    if (totalOrphans > 0) {
+      score -= totalOrphans * 6;
+      breakdown.push(`${totalOrphans} orphan inference${totalOrphans > 1 ? "s" : ""} (missing parent links)`);
+    }
+    if (deepPages > 0) {
+      breakdown.push(`${deepPages} page${deepPages > 1 ? "s" : ""} with inference depth > 2 (synthesis drifting)`);
+    }
+    if (pagesWithInferred > 0 && avgDepth > 0) {
+      breakdown.push(`Avg inference depth: ${avgDepth.toFixed(1)} across ${pagesWithInferred} synthesized page${pagesWithInferred > 1 ? "s" : ""}`);
+    }
+
     if (errors > 0) breakdown.push(`${errors} error${errors > 1 ? "s" : ""}`);
     if (warnings > 0) breakdown.push(`${warnings} warning${warnings > 1 ? "s" : ""}`);
     if (breakdown.length === 0) breakdown.push("All checks passed");

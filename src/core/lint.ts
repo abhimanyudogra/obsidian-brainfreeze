@@ -1,5 +1,6 @@
 import { Vault, TFile } from "obsidian";
 import { BrainfreezeIndex, PageMeta } from "./search-index";
+import { parseProvenanceDag } from "./provenance";
 
 export interface LintIssue {
   severity: "error" | "warning";
@@ -179,6 +180,40 @@ export async function runStructuralLint(
           });
         }
       }
+    }
+
+    // 11. Inference-chain depth
+    const dag = parseProvenanceDag(content);
+    if (dag.maxDepth > 3) {
+      issues.push({
+        severity: "error",
+        page: page.path,
+        check: "inference-depth",
+        message: `Max inference chain depth ${dag.maxDepth} exceeds limit of 3 — ground a claim in [^e] or split the page`,
+      });
+    } else if (dag.maxDepth > 2) {
+      issues.push({
+        severity: "warning",
+        page: page.path,
+        check: "inference-depth",
+        message: `Max inference chain depth ${dag.maxDepth} — synthesis is stacking, consider grounding in a new [^e]`,
+      });
+    }
+
+    // 12. Orphan inferences
+    if (dag.orphans > 0) {
+      const badTags: string[] = [];
+      for (const [id, tag] of dag.tags) {
+        if (tag.type !== "i") continue;
+        const d = dag.depths.get(id);
+        if (d === undefined || d < 0) badTags.push(`[^${id}]`);
+      }
+      issues.push({
+        severity: "error",
+        page: page.path,
+        check: "orphan-inference",
+        message: `${dag.orphans} orphan [^i] tag${dag.orphans > 1 ? "s" : ""}: ${badTags.join(", ")} — missing 'inferred from [^...]' clause, unknown parents, or cyclic`,
+      });
     }
   }
 

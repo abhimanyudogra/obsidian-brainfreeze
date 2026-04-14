@@ -48,8 +48,21 @@ sources: []
 
 Every factual claim carries an inline tag:
 - \`[^e<n>]\` **extracted** — directly from a raw source
-- \`[^i<n>]\` **inferred** — LLM synthesis across extracted facts
+- \`[^i<n>]\` **inferred** — LLM synthesis. Definition line must start with \`inferred from [^X1], [^X2], ... — rationale\` where each \`[^X]\` is an existing parent tag on the same page (\`[^e]\`, \`[^i]\`, or \`[^a]\`). Parent citations turn provenance into a DAG — lint walks it to detect drift.
 - \`[^a<n>]\` **ambiguous** — sources disagree
+
+Example:
+
+\`\`\`
+Total income was $148,200 [^i1] giving an effective federal rate of 24% [^i2].
+
+[^e1]: extracted — W-2 Box 1 = $145,000
+[^e2]: extracted — 1099-DIV = $3,200
+[^i1]: inferred from [^e1], [^e2] — total income = W-2 + 1099-DIV
+[^i2]: inferred from [^i1] — effective rate from total income and known AGI
+\`\`\`
+
+Max inference depth is 3 hops to an extracted leaf. Deeper chains are a lint error — ground the claim in a new \`[^e]\` or split the page.
 
 ## Operations
 
@@ -85,6 +98,8 @@ Respond as JSON:
 ## Hard rules
 - Never create pages outside the five category folders
 - Every numeric claim needs a provenance tag
+- Every \`[^i]\` must cite parents via \`inferred from [^X1], [^X2]\` — no orphan inferences
+- Max inference depth of 3 hops to an extracted leaf — deeper chains must be split
 - Use Obsidian wikilinks: [[entities/example]] or [[entities/example|alias]]
 - Cross-link between related pages using the relations frontmatter
 `;

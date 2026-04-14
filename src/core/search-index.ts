@@ -1,5 +1,6 @@
 import { TFile, Vault, parseYaml } from "obsidian";
 import FlexSearch from "flexsearch";
+import { parseProvenanceDag } from "./provenance";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type FlexSearchIndex = any;
@@ -19,7 +20,17 @@ export interface PageMeta {
   status: string;
   tags: string[];
   relations: Record<string, string[]>;
-  provenance: { extracted: number; inferred: number; ambiguous: number };
+  provenance: {
+    extracted: number;
+    inferred: number;
+    ambiguous: number;
+    /** Longest chain from any [^i] to an [^e]/[^a] leaf. Computed from body, not frontmatter. */
+    maxDepth: number;
+    /** Fraction of [^i] tags whose chain reaches a leaf. 1.0 when no [^i]. */
+    rootedRatio: number;
+    /** [^i] tags with no parent clause, missing parents, or cycles. */
+    orphanInferences: number;
+  };
   created: string;
   updated: string;
 }
@@ -77,6 +88,13 @@ export class BrainfreezeIndex {
 
     if (!frontmatter) return;
 
+    const fmProv = (frontmatter.provenance as Record<string, number> | undefined) ?? {
+      extracted: 0,
+      inferred: 0,
+      ambiguous: 0,
+    };
+    const dag = parseProvenanceDag(body);
+
     const meta: PageMeta = {
       path: file.path,
       title: frontmatter.title ?? file.basename,
@@ -84,10 +102,13 @@ export class BrainfreezeIndex {
       status: frontmatter.status ?? "active",
       tags: frontmatter.tags ?? [],
       relations: frontmatter.relations ?? {},
-      provenance: frontmatter.provenance ?? {
-        extracted: 0,
-        inferred: 0,
-        ambiguous: 0,
+      provenance: {
+        extracted: fmProv.extracted ?? 0,
+        inferred: fmProv.inferred ?? 0,
+        ambiguous: fmProv.ambiguous ?? 0,
+        maxDepth: dag.maxDepth,
+        rootedRatio: dag.rootedRatio,
+        orphanInferences: dag.orphans,
       },
       created: frontmatter.created ?? "",
       updated: frontmatter.updated ?? "",
