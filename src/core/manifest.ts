@@ -29,13 +29,17 @@ export class ManifestManager {
   }
 
   async load(): Promise<void> {
+    // Read via adapter, not vault, because Obsidian's file cache excludes
+    // dot-prefixed paths — getAbstractFileByPath(".manifest.json") returns
+    // null even when the file exists. save() already uses the adapter;
+    // loading the same way keeps them symmetric.
     try {
-      const file = this.vault.getAbstractFileByPath(MANIFEST_PATH);
-      if (file) {
-        const raw = await this.vault.read(file as any);
+      if (await this.vault.adapter.exists(MANIFEST_PATH)) {
+        const raw = await this.vault.adapter.read(MANIFEST_PATH);
         this.data = JSON.parse(raw);
       }
-    } catch {
+    } catch (err) {
+      console.error("Brainfreeze: manifest load failed, starting empty:", err);
       this.data = { version: 1, updated: "", sources: {} };
     }
   }
