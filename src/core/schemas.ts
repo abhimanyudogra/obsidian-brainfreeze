@@ -113,7 +113,7 @@ Respond as JSON:
     {
       "path": "entities/example.md",
       "action": "create",
-      "content": "---\\ntitle: Example\\ncategory: entity\\nstatus: active\\ncreated: 2026-04-13\\nupdated: 2026-04-13\\ntags: []\\nrelations:\\n  supports: []\\n  contradicts: []\\n  supersedes: []\\n  derives-from: []\\n  depends-on: []\\n  relates-to: []\\nprovenance:\\n  extracted: 1\\n  inferred: 0\\n  ambiguous: 0\\nsources: []\\n---\\n\\n# Example\\n\\n## What it is\\nDescription [^e1]\\n\\n## Citations\\n[^e1]: extracted — source.json field_name"
+      "content": "---\\ntitle: Example\\ncategory: entity\\nstatus: active\\ncreated: YYYY-MM-DD\\nupdated: YYYY-MM-DD\\ntags: []\\nrelations:\\n  supports: []\\n  contradicts: []\\n  supersedes: []\\n  derives-from: []\\n  depends-on: []\\n  relates-to: []\\nprovenance:\\n  extracted: 1\\n  inferred: 0\\n  ambiguous: 0\\nsources: []\\n---\\n\\n# Example\\n\\n## What it is\\nDescription [^e1]\\n\\n## Citations\\n[^e1]: extracted — source.json field_name"
     }
   ]
 }
@@ -124,6 +124,8 @@ Respond as JSON:
 - Every numeric claim needs a provenance tag
 - Every \`[^i]\` must cite parents via \`inferred from [^X1], [^X2]\` — no orphan inferences
 - Max inference depth of 3 hops to an extracted leaf — deeper chains must be split
+- Use the current date (provided in each ingest operation) for \`created\` and \`updated\` — never guess a date from your training cutoff
+- Relations are YAML block-lists of quoted wikilink strings (see Relations format above) — never inline flow arrays with bare \`[[...]]\`
 - Use Obsidian wikilinks: [[entities/example]] or [[entities/example|alias]]
 - Cross-link between related pages using the relations frontmatter
 `;

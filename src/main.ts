@@ -248,7 +248,10 @@ export default class BrainfreezePlugin extends Plugin {
       .map((s) => `### ${s.path}\n\`\`\`\n${s.content}\n\`\`\``)
       .join("\n\n");
 
+    const today = new Date().toISOString().split("T")[0];
     const operation = `INGEST OPERATION
+
+Today's date is ${today}. Use this exact date for \`created\` and \`updated\` frontmatter on every new page. Do NOT invent dates from your training cutoff.
 
 You are ingesting ${newSources.length} source file(s) into a brainfreeze wiki vault.
 
@@ -449,7 +452,10 @@ Respond in this JSON format:
       .map((s) => `### ${s.path}\n\`\`\`\n${s.content.substring(0, 5000)}\n\`\`\``)
       .join("\n\n");
 
+    const today = new Date().toISOString().split("T")[0];
     const operation = `FULL RECONSTRUCTION
+
+Today's date is ${today}. Use this exact date for \`created\` and \`updated\` frontmatter on every page. Do NOT invent dates from your training cutoff.
 
 Rebuild the entire wiki from scratch using ALL ${allContents.length} source files below.
 Create a comprehensive set of wiki pages that cross-reference each other.
