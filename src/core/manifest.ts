@@ -43,12 +43,7 @@ export class ManifestManager {
   async save(): Promise<void> {
     this.data.updated = new Date().toISOString();
     const json = JSON.stringify(this.data, null, 2);
-    const file = this.vault.getAbstractFileByPath(MANIFEST_PATH);
-    if (file) {
-      await this.vault.modify(file as any, json);
-    } else {
-      await this.vault.create(MANIFEST_PATH, json);
-    }
+    await this.vault.adapter.write(MANIFEST_PATH, json);
   }
 
   /**

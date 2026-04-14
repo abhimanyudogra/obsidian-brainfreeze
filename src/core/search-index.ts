@@ -1,6 +1,6 @@
 import { TFile, Vault, parseYaml } from "obsidian";
+import FlexSearch from "flexsearch";
 
-// FlexSearch types (flexsearch doesn't ship great TS types)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type FlexSearchIndex = any;
 
@@ -49,9 +49,7 @@ export class BrainfreezeIndex {
     const start = Date.now();
     this.structured.clear();
 
-    // Dynamic import — FlexSearch is bundled via esbuild
-    const FlexSearch = await import("flexsearch");
-    this.fulltext = new FlexSearch.Document({
+    this.fulltext = new (FlexSearch as any).Document({
       document: {
         id: "id",
         index: ["title", "body"],
