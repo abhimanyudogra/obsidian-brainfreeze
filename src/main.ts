@@ -15,6 +15,23 @@ import { ReviewView, REVIEW_VIEW_TYPE } from "./views/ReviewView";
 
 export type IngestPhase = "idle" | "reading" | "llm" | "writing" | "done" | "error";
 
+/** Convert SDK errors into short, user-readable messages. */
+function humanizeLLMError(err: unknown): string {
+  const e = err as { status?: number; message?: string };
+  switch (e?.status) {
+    case 529:
+    case 503:
+      return "Anthropic is overloaded — usually clears within a few minutes. Retry.";
+    case 429:
+      return "Rate limited by Anthropic — wait a moment and retry.";
+    case 401:
+      return "Invalid API key — check Settings → Brainfreeze.";
+    case 400:
+      return `Bad request to Anthropic: ${e.message ?? "see console"}`;
+  }
+  return e?.message ? `LLM call failed: ${e.message}` : `LLM call failed: ${String(err)}`;
+}
+
 export default class BrainfreezePlugin extends Plugin {
   settings: BrainfreezeSettings = DEFAULT_SETTINGS;
   index: BrainfreezeIndex = null!;
@@ -335,7 +352,7 @@ Respond in this JSON format:
       console.log(`Brainfreeze: ingest complete — ${draftCount} drafts`);
       this.setIngestPhase("done", "Ingest complete", draftCount);
     } catch (err) {
-      this.setIngestPhase("error", `Ingest failed: ${err}`);
+      this.setIngestPhase("error", humanizeLLMError(err));
       console.error("Brainfreeze ingest error:", err);
     }
   }
@@ -483,7 +500,7 @@ Respond as JSON with "conversation" and "pages" array.`;
 
       this.setIngestPhase("done", "Reconstruction complete", count);
     } catch (err) {
-      this.setIngestPhase("error", `Reconstruction failed: ${err}`);
+      this.setIngestPhase("error", humanizeLLMError(err));
       console.error("Brainfreeze reconstruct error:", err);
     }
   }

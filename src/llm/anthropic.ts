@@ -13,7 +13,7 @@ export class AnthropicProvider extends LLMProviderBase {
     this.apiKey = apiKey;
     this.model = model;
     if (apiKey) {
-      this.client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+      this.client = new Anthropic({ apiKey, maxRetries: 5, dangerouslyAllowBrowser: true });
     }
   }
 
@@ -52,7 +52,7 @@ export class AnthropicProvider extends LLMProviderBase {
   updateApiKey(apiKey: string) {
     this.apiKey = apiKey;
     this.client = apiKey
-      ? new Anthropic({ apiKey, dangerouslyAllowBrowser: true })
+      ? new Anthropic({ apiKey, maxRetries: 5, dangerouslyAllowBrowser: true })
       : null;
   }
 
