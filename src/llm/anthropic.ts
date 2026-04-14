@@ -28,7 +28,12 @@ export class AnthropicProvider extends LLMProviderBase {
   ): Promise<LLMResponse> {
     if (!this.client) throw new Error("Anthropic API key not configured");
 
-    const response = await this.client.messages.create({
+    // Use streaming API unconditionally — the SDK hard-blocks non-streaming
+    // requests whose max_tokens budget projects a runtime past the 10-minute
+    // HTTP timeout. Streaming also avoids idle-connection drops on slow
+    // generations. finalMessage() still aggregates for us, so the call site
+    // gets the same Message shape we'd get from create().
+    const stream = this.client.messages.stream({
       model: this.model,
       max_tokens: options.maxTokens ?? 8192,
       temperature: options.temperature ?? 0.3,
@@ -38,6 +43,8 @@ export class AnthropicProvider extends LLMProviderBase {
         content: m.content,
       })),
     });
+
+    const response = await stream.finalMessage();
 
     const text =
       response.content[0].type === "text" ? response.content[0].text : "";
