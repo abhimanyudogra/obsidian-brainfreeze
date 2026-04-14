@@ -65,10 +65,66 @@ const VIEW_STYLES = `
   .bf-init { text-align: center; padding: 24px 12px; }
   .bf-init-title { font-size: 1em; font-weight: 600; margin-bottom: 8px; }
   .bf-init-desc { font-size: 0.82em; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5; }
+
+  .bf-status { margin-bottom: 14px; border-radius: 8px; overflow: hidden;
+    border: 1px solid var(--background-modifier-border);
+    animation: bf-status-in 0.25s ease-out; }
+  .bf-status-hidden { display: none !important; }
+  @keyframes bf-status-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+  .bf-status-processing { background: var(--background-secondary); padding: 10px 14px; }
+  .bf-status-spinner { position: relative; height: 3px; background: var(--background-modifier-border);
+    border-radius: 2px; overflow: hidden; margin-bottom: 8px; }
+  .bf-status-spinner::before {
+    content: ''; position: absolute; left: 0; top: 0; height: 100%; width: 30%;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      var(--interactive-accent) 50%,
+      transparent 100%);
+    animation: bf-shimmer 1.3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes bf-shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(400%); }
+  }
+  .bf-status-msg { font-size: 0.84em; color: var(--text-normal); display: flex;
+    align-items: center; gap: 8px; }
+  .bf-status-phase { display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--interactive-accent); animation: bf-pulse 1.2s ease-in-out infinite; }
+  @keyframes bf-pulse {
+    0%, 100% { opacity: 0.3; transform: scale(0.85); }
+    50% { opacity: 1; transform: scale(1); }
+  }
+
+  .bf-status-done { background: rgba(16, 185, 129, 0.08); border-color: #10b981;
+    padding: 10px 12px; display: flex !important; align-items: center !important;
+    justify-content: space-between !important; gap: 8px !important; }
+  .bf-status-done-msg { font-size: 0.88em; font-weight: 600; color: #10b981;
+    display: flex; align-items: center; gap: 8px; }
+  .bf-status-done-check { display: inline-flex; align-items: center; justify-content: center;
+    width: 18px; height: 18px; border-radius: 50%; background: #10b981; color: white;
+    font-size: 0.7em; font-weight: 700; }
+  .bf-status-done-btn { padding: 6px 14px !important; background: #10b981 !important;
+    color: white !important; border: none !important; border-radius: 6px !important;
+    cursor: pointer !important; font-size: 0.8em !important; font-weight: 600 !important;
+    transition: filter 0.15s !important; white-space: nowrap !important; }
+  .bf-status-done-btn:hover { filter: brightness(1.1); }
+
+  .bf-status-error { background: rgba(239, 68, 68, 0.08); border-color: #ef4444;
+    padding: 10px 14px; }
+  .bf-status-error-msg { font-size: 0.84em; color: #ef4444; font-weight: 500; }
+
+  .bf-busy .bf-health, .bf-busy .bf-grid, .bf-busy .bf-drop,
+  .bf-busy .bf-actions, .bf-busy .bf-search {
+    opacity: 0.4; pointer-events: none; transition: opacity 0.2s ease;
+    filter: saturate(0.6);
+  }
 `;
 
 export class IngestView extends ItemView {
   private plugin: BrainfreezePlugin;
+  private statusEl: HTMLElement | null = null;
+  private wrapEl: HTMLElement | null = null;
 
   constructor(leaf: WorkspaceLeaf, plugin: BrainfreezePlugin) {
     super(leaf);
@@ -92,9 +148,13 @@ export class IngestView extends ItemView {
     container.appendChild(style);
 
     const wrap = container.createDiv({ cls: "bf-wrap" });
+    this.wrapEl = wrap;
 
     // ── Header ──────────────────────────────────────────────────
     wrap.createEl("div", { text: "brainfreeze", cls: "bf-title" });
+
+    // ── Status banner (processing / done / error) ───────────────
+    this.statusEl = wrap.createDiv({ cls: "bf-status bf-status-hidden" });
 
     // ── If vault not initialized, show init screen ──────────────
     if (!this.plugin.initialized) {
@@ -217,6 +277,64 @@ export class IngestView extends ItemView {
         item.addEventListener("click", () => this.plugin.app.workspace.openLinkText(path, ""));
       }
     });
+
+    // Sync status banner with current plugin phase after every full render
+    this.updateIngestStatus();
+  }
+
+  /**
+   * Repaint the status banner based on plugin.ingestPhase. Safe to call often —
+   * this is the only method that touches the banner DOM. Also toggles .bf-busy
+   * on the wrap to grey out the rest of the UI during processing.
+   */
+  updateIngestStatus(): void {
+    if (!this.statusEl || !this.wrapEl) return;
+    const { ingestPhase, ingestMessage, ingestDraftCount } = this.plugin;
+
+    this.statusEl.empty();
+    this.statusEl.className = "bf-status";
+
+    const isProcessing = ingestPhase === "reading" || ingestPhase === "llm" || ingestPhase === "writing";
+    this.wrapEl.classList.toggle("bf-busy", isProcessing);
+
+    if (ingestPhase === "idle") {
+      this.statusEl.classList.add("bf-status-hidden");
+      return;
+    }
+
+    if (isProcessing) {
+      this.statusEl.classList.add("bf-status-processing");
+      this.statusEl.createDiv({ cls: "bf-status-spinner" });
+      const msg = this.statusEl.createDiv({ cls: "bf-status-msg" });
+      msg.createSpan({ cls: "bf-status-phase" });
+      msg.createSpan({ text: ingestMessage });
+      return;
+    }
+
+    if (ingestPhase === "done") {
+      this.statusEl.classList.add("bf-status-done");
+      const msg = this.statusEl.createDiv({ cls: "bf-status-done-msg" });
+      msg.createSpan({ text: "✓", cls: "bf-status-done-check" });
+      msg.createSpan({
+        text: `${ingestDraftCount} draft${ingestDraftCount !== 1 ? "s" : ""} ready`,
+      });
+      const btn = this.statusEl.createEl("button", {
+        text: "Review →",
+        cls: "bf-status-done-btn",
+      });
+      btn.addEventListener("click", async () => {
+        await this.plugin.openReviewPanel();
+        this.plugin.setIngestPhase("idle", "");
+        await this.renderFull();
+      });
+      return;
+    }
+
+    if (ingestPhase === "error") {
+      this.statusEl.classList.add("bf-status-error");
+      this.statusEl.createDiv({ text: `⚠ ${ingestMessage}`, cls: "bf-status-error-msg" });
+      return;
+    }
   }
 
   private async renderHealth(el: HTMLElement): Promise<void> {

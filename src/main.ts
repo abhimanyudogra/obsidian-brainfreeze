@@ -13,12 +13,28 @@ import { LLMProviderBase } from "./llm/provider";
 import { IngestView, INGEST_VIEW_TYPE } from "./views/IngestView";
 import { ReviewView, REVIEW_VIEW_TYPE } from "./views/ReviewView";
 
+export type IngestPhase = "idle" | "reading" | "llm" | "writing" | "done" | "error";
+
 export default class BrainfreezePlugin extends Plugin {
   settings: BrainfreezeSettings = DEFAULT_SETTINGS;
   index: BrainfreezeIndex = null!;
   manifest: ManifestManager = null!;
   llm: LLMProviderBase = null!;
   initialized = false;
+  ingestPhase: IngestPhase = "idle";
+  ingestMessage = "";
+  ingestDraftCount = 0;
+
+  /** Centralized ingest-phase setter — updates state then nudges IngestView to repaint its status banner. */
+  setIngestPhase(phase: IngestPhase, message: string, draftCount = 0): void {
+    this.ingestPhase = phase;
+    this.ingestMessage = message;
+    this.ingestDraftCount = draftCount;
+    for (const leaf of this.app.workspace.getLeavesOfType(INGEST_VIEW_TYPE)) {
+      const view = leaf.view as IngestView;
+      if (typeof view.updateIngestStatus === "function") view.updateIngestStatus();
+    }
+  }
 
   async onload() {
     await this.loadSettings();
@@ -152,7 +168,13 @@ export default class BrainfreezePlugin extends Plugin {
       return;
     }
 
-    new Notice(`Starting ingest of ${sourcePaths.length} file(s)...`);
+    if (this.ingestPhase === "reading" || this.ingestPhase === "llm" || this.ingestPhase === "writing") {
+      new Notice("An ingest is already running — wait for it to finish");
+      return;
+    }
+
+    const n = sourcePaths.length;
+    this.setIngestPhase("reading", `Reading ${n} file${n !== 1 ? "s" : ""}...`);
 
     // Read vault schema (CLAUDE.md)
     const schemaFile = this.app.vault.getAbstractFileByPath("CLAUDE.md");
@@ -193,6 +215,7 @@ export default class BrainfreezePlugin extends Plugin {
     }
 
     if (newSources.length === 0) {
+      this.setIngestPhase("idle", "");
       new Notice("No new or changed files to ingest");
       return;
     }
@@ -236,6 +259,7 @@ Respond in this JSON format:
 }`;
 
     try {
+      this.setIngestPhase("llm", `Calling ${this.llm.name} — this may take up to a minute...`);
       console.log("Brainfreeze: calling LLM...");
       const response = await this.llm.chat(
         this.llm.buildSystemPrompt(schema, operation),
@@ -247,7 +271,7 @@ Respond in this JSON format:
       // Parse the response
       const jsonMatch = response.content.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        new Notice("LLM did not return valid JSON — check console");
+        this.setIngestPhase("error", "LLM did not return valid JSON — check console");
         console.error("Brainfreeze: raw LLM response:", response.content);
         return;
       }
@@ -259,6 +283,8 @@ Respond in this JSON format:
       if (result.conversation) {
         console.log("Brainfreeze: pre-ingest conversation:", result.conversation);
       }
+
+      this.setIngestPhase("writing", `Writing ${pages.length} draft${pages.length !== 1 ? "s" : ""}...`);
 
       // Write drafts to .drafts/
       let draftCount = 0;
@@ -306,20 +332,10 @@ Respond in this JSON format:
         console.error("Brainfreeze: manifest save failed:", e);
       }
 
-      // Show conversation to user
-      new Notice(
-        `Ingest complete: ${draftCount} drafts written. Click Review to approve.`
-      );
       console.log(`Brainfreeze: ingest complete — ${draftCount} drafts`);
-
-      // Open the review panel with the new drafts
-      await this.activateView(REVIEW_VIEW_TYPE, "right");
-      const reviewLeaf = this.app.workspace.getLeavesOfType(REVIEW_VIEW_TYPE)[0];
-      if (reviewLeaf) {
-        (reviewLeaf.view as ReviewView).loadDrafts();
-      }
+      this.setIngestPhase("done", "Ingest complete", draftCount);
     } catch (err) {
-      new Notice(`Ingest failed: ${err}`);
+      this.setIngestPhase("error", `Ingest failed: ${err}`);
       console.error("Brainfreeze ingest error:", err);
     }
   }
@@ -362,6 +378,11 @@ Respond in this JSON format:
       return;
     }
 
+    if (this.ingestPhase === "reading" || this.ingestPhase === "llm" || this.ingestPhase === "writing") {
+      new Notice("An ingest is already running — wait for it to finish");
+      return;
+    }
+
     const sources = this.manifest.getSources();
     const sourcePaths = Object.keys(sources);
     if (sourcePaths.length === 0) {
@@ -369,7 +390,7 @@ Respond in this JSON format:
       return;
     }
 
-    new Notice(`Reconstructing from ${sourcePaths.length} sources...`);
+    this.setIngestPhase("reading", `Reconstructing from ${sourcePaths.length} source${sourcePaths.length !== 1 ? "s" : ""}...`);
 
     // Clear existing drafts
     const adapter = this.app.vault.adapter;
@@ -393,6 +414,7 @@ Respond in this JSON format:
     }
 
     if (allContents.length === 0) {
+      this.setIngestPhase("idle", "");
       new Notice("No readable sources found");
       return;
     }
@@ -425,6 +447,7 @@ ${sourceList}
 Respond as JSON with "conversation" and "pages" array.`;
 
     try {
+      this.setIngestPhase("llm", `Calling ${this.llm.name} for full reconstruction — this may take a few minutes...`);
       console.log("Brainfreeze: calling LLM for reconstruction...");
       const response = await this.llm.chat(
         this.llm.buildSystemPrompt(schema, operation),
@@ -434,13 +457,14 @@ Respond as JSON with "conversation" and "pages" array.`;
 
       const jsonMatch = response.content.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        new Notice("LLM did not return valid JSON");
+        this.setIngestPhase("error", "LLM did not return valid JSON");
         console.error("Brainfreeze reconstruct response:", response.content);
         return;
       }
 
       const result = JSON.parse(jsonMatch[0]);
       const pages = result.pages ?? [];
+      this.setIngestPhase("writing", `Writing ${pages.length} reconstructed draft${pages.length !== 1 ? "s" : ""}...`);
       let count = 0;
 
       for (const page of pages) {
@@ -457,10 +481,9 @@ Respond as JSON with "conversation" and "pages" array.`;
         count++;
       }
 
-      new Notice(`Reconstruction: ${count} drafts. Click Review to approve.`);
-      await this.openReviewPanel();
+      this.setIngestPhase("done", "Reconstruction complete", count);
     } catch (err) {
-      new Notice(`Reconstruction failed: ${err}`);
+      this.setIngestPhase("error", `Reconstruction failed: ${err}`);
       console.error("Brainfreeze reconstruct error:", err);
     }
   }
