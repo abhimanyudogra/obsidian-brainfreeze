@@ -49,19 +49,37 @@ Yellow nodes are where you stay in the loop. The plugin never writes to your liv
 - Sub-5ms queries across hundreds of pages
 - Incremental updates on file changes — no manual rebuild needed
 
-**Structural lint** (10 checks, zero LLM cost)
+**Structural lint** (12 checks, zero LLM cost)
 - Broken wikilinks, orphan pages, missing provenance tags
 - Provenance count mismatches, empty template sections
 - Category-folder mismatches, active contradictions, stale dependencies
+- **Inference-chain depth** — warns past 2 hops, errors past 3 (drift signal)
+- **Orphan inferences** — `[^i]` tags with missing parent links or broken chains
 
-**Provenance tracking**
+**Provenance tracking with inference-DAG drift detection**
 - Every factual claim tagged: `[^e]` extracted, `[^i]` inferred, `[^a]` ambiguous
-- Frontmatter rollup counts validated by lint
-- Ambiguous claims require an open-questions section — enforced, not optional
+- Every `[^i]` must cite its parents: `inferred from [^e1], [^e2] — rationale`
+- Parent links turn provenance into a DAG that lint walks to compute depth per claim
+- Catches *cumulative synthesis drift*: a vault that's structurally clean but
+  has quietly become inference-on-inference after N ingests
+
+**Vault health score** (drift-aware)
+- 0–100 score with breakdown surfacing: avg inference depth, pages past depth 2,
+  orphan inferences, stale pages, unresolved ambiguities, structural lint totals
+- Signals "reconstruct time" before a vault silently drifts away from its sources
+
+**Reconstruct operation**
+- Archive current pages, re-ingest every source from `.manifest.json` in a single LLM call
+- Escape hatch when incremental ingests have produced semantic drift
 
 **Manifest-based delta ingest**
 - SHA-256 hash per source file in `.manifest.json`
 - Re-ingesting unchanged files is a no-op — no duplicates, no guessing
+
+**Vault initialization**
+- `initVault()` ships with the plugin — bundled `CLAUDE.md`, five page templates,
+  category folders, manifest, log, index, gitignore all written on first click
+- No copy-paste from the brainfreeze repo, no LLM freelancing folder structure
 
 ## Installation
 
@@ -135,16 +153,47 @@ src/
 
 Built on the [brainfreeze](https://github.com/abhimanyudogra/brainfreeze) pattern — 11 enhancements over Karpathy's base LLM Wiki including drafts-folder review gates, three-state provenance, typed YAML relations, and split lint. See the brainfreeze README for the full methodology.
 
-## Contributing
+## Roadmap
 
-PRs welcome. The main areas that need work:
+**Done**
+- [x] Bundled schema + `initVault()` scaffolding (CLAUDE.md, templates, folders, manifest)
+- [x] Reconstruct operation (archive + re-ingest from manifest)
+- [x] Structural lint (12 checks including inference-DAG depth and orphan inferences)
+- [x] Provenance inference-DAG parser (`src/core/provenance.ts`)
+- [x] Drift-aware health score (inference depth, orphan inferences, stale, ambiguities)
+- [x] Two-layer search index (frontmatter map + FlexSearch full-text)
+- [x] Sidebar UI with drop zone, action grid, draft review, init flow
 
-- [ ] OpenAI provider implementation (`src/llm/openai.ts`)
-- [ ] Ollama provider implementation (`src/llm/ollama.ts`)
-- [ ] Pre-ingest conversation modal (currently uses Notice; should be a rich modal)
-- [ ] Lint results modal (currently logs to console; should be a UI panel)
+**Drift detection (phase 2 — in planning)**
+- [ ] Semantic lint — LLM-backed verification of `[^e]` claims against current sources (drift mode 1)
+- [ ] Per-draft "Verify" button in review panel for cheap, targeted checks
+- [ ] Hash-based cache of semantic results in `.manifest.json`
+- [ ] Sampling strategy (K highest-risk pages on each health compute) + freshness gauge
+
+**Multi-format ingest**
+- [ ] PDF support via Anthropic document blocks (base64-encoded, no pdfjs needed in plugin)
+- [ ] DOCX / XLSX text extraction (mammoth, SheetJS, or document blocks if supported)
+- [ ] Image support via vision content blocks
+- [ ] Extend `provider.chat()` to accept content blocks, not just text strings
+
+**Other LLM providers**
+- [ ] OpenAI provider (`src/llm/openai.ts`)
+- [ ] Ollama provider (`src/llm/ollama.ts`) — enables fully-local operation
+
+**UX polish**
+- [ ] Pre-ingest conversation modal (currently logs to console; the paradigm's "don't delegate understanding" checkpoint should be a blocking UI)
+- [ ] Lint results modal (currently logs to console)
+- [ ] Settings: model dropdown instead of free-text field
+- [ ] Settings: vault-type-aware init — write `personal-finance` / `career` / `health` variants of CLAUDE.md based on selected type
+
+**Correctness / paradigm compliance**
+- [ ] Clean up pre-existing TypeScript errors (`Plugin.manifest` naming collision with `ManifestManager`, frontmatter `unknown` type narrowing in `search-index.ts`, `Buffer` → `ArrayBuffer` in `IngestView.ts`)
+- [ ] Auto-run structural lint after every ingest (paradigm calls for this)
+- [ ] Git commit per operation (ingest / refactor / prune)
+- [ ] Enforce source-to-page routing tables from CLAUDE.md (currently LLM decides freely)
+
+**Longer horizon**
 - [ ] Vector embeddings for semantic search (v0.2)
-- [ ] Page template auto-scaffolding on first install
 - [ ] Obsidian Community Plugin submission
 
 ## Credits
