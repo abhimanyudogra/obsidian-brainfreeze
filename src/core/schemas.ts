@@ -44,6 +44,30 @@ sources: []
 ---
 \`\`\`
 
+### Relations format — must be YAML block-lists of quoted wikilink strings
+
+When a relation has targets, write it like this:
+
+\`\`\`yaml
+relations:
+  derives-from:
+    - "[[concepts/convolutional-neural-networks]]"
+  depends-on:
+    - "[[entities/imagenet-dataset]]"
+    - "[[concepts/dropout-regularization]]"
+\`\`\`
+
+**Never** write relations as inline flow arrays with bare wikilinks:
+
+\`\`\`yaml
+# WRONG — YAML parses [[x]] as a nested array, not a wikilink string
+depends-on: [[entities/imagenet-dataset], [concepts/dropout-regularization]]
+# WRONG — same mistake in single-entry form
+derives-from: [[concepts/something]]
+\`\`\`
+
+Same rule for \`sources:\` and any other list-of-wikilink fields — always block-list form with quoted \`"[[...]]"\` strings.
+
 ## Provenance tagging
 
 Every factual claim carries an inline tag:

@@ -339,26 +339,34 @@ export class IngestView extends ItemView {
 
   private async renderHealth(el: HTMLElement): Promise<void> {
     el.empty();
-    const { score, breakdown } = await this.plugin.getHealthScore();
+    try {
+      const { score, breakdown } = await this.plugin.getHealthScore();
 
-    // Color: green (>75) → yellow (40-75) → red (<40)
-    let color: string;
-    if (score >= 75) color = "#10b981";
-    else if (score >= 40) color = "#f59e0b";
-    else color = "#ef4444";
+      // Color: green (>75) → yellow (40-75) → red (<40)
+      let color: string;
+      if (score >= 75) color = "#10b981";
+      else if (score >= 40) color = "#f59e0b";
+      else color = "#ef4444";
 
-    const label = el.createDiv({ cls: "bf-health-label" });
-    label.createEl("span", { text: "Health", cls: "bf-health-text" });
-    const scoreEl = label.createEl("span", { text: `${score}%`, cls: "bf-health-score" });
-    scoreEl.style.color = color;
+      const label = el.createDiv({ cls: "bf-health-label" });
+      label.createEl("span", { text: "Health", cls: "bf-health-text" });
+      const scoreEl = label.createEl("span", { text: `${score}%`, cls: "bf-health-score" });
+      scoreEl.style.color = color;
 
-    const bar = el.createDiv({ cls: "bf-health-bar" });
-    const fill = bar.createDiv({ cls: "bf-health-fill" });
-    fill.style.width = `${score}%`;
-    fill.style.background = color;
+      const bar = el.createDiv({ cls: "bf-health-bar" });
+      const fill = bar.createDiv({ cls: "bf-health-fill" });
+      fill.style.width = `${score}%`;
+      fill.style.background = color;
 
-    if (breakdown.length > 0 && breakdown[0] !== "All checks passed") {
-      el.createEl("div", { text: breakdown.join(" · "), cls: "bf-health-details" });
+      if (breakdown.length > 0 && breakdown[0] !== "All checks passed") {
+        el.createEl("div", { text: breakdown.join(" · "), cls: "bf-health-details" });
+      }
+    } catch (err) {
+      console.error("Brainfreeze: health score failed to render", err);
+      el.createEl("div", {
+        text: `Health score unavailable: ${err instanceof Error ? err.message : String(err)}`,
+        cls: "bf-health-details",
+      });
     }
   }
 

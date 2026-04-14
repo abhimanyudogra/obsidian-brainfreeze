@@ -100,8 +100,8 @@ export class BrainfreezeIndex {
       title: frontmatter.title ?? file.basename,
       category: frontmatter.category ?? "unknown",
       status: frontmatter.status ?? "active",
-      tags: frontmatter.tags ?? [],
-      relations: frontmatter.relations ?? {},
+      tags: this.flattenToStrings(frontmatter.tags),
+      relations: this.normalizeRelations(frontmatter.relations),
       provenance: {
         extracted: fmProv.extracted ?? 0,
         inferred: fmProv.inferred ?? 0,
@@ -240,6 +240,33 @@ export class BrainfreezeIndex {
   }
 
   // ── Internal ────────────────────────────────────────────────────
+
+  /**
+   * Recursively flatten any value into an array of strings.
+   * Handles the common LLM foot-gun of writing `[[x]]` inside YAML flow arrays —
+   * YAML parses that as a nested array, not a wikilink string, so every consumer
+   * of relations/tags needs to either string-check every entry or we normalize here.
+   */
+  private flattenToStrings(v: unknown): string[] {
+    if (v == null) return [];
+    if (typeof v === "string") return v.trim() ? [v] : [];
+    if (Array.isArray(v)) {
+      const out: string[] = [];
+      for (const item of v) out.push(...this.flattenToStrings(item));
+      return out;
+    }
+    // Drop numbers, booleans, objects — they don't belong in relations/tags.
+    return [];
+  }
+
+  private normalizeRelations(raw: unknown): Record<string, string[]> {
+    if (!raw || typeof raw !== "object") return {};
+    const out: Record<string, string[]> = {};
+    for (const [key, val] of Object.entries(raw as Record<string, unknown>)) {
+      out[key] = this.flattenToStrings(val);
+    }
+    return out;
+  }
 
   private parseFrontmatter(content: string): {
     frontmatter: Record<string, unknown> | null;
